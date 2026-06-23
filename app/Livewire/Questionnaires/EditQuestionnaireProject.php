@@ -5,6 +5,7 @@ namespace App\Livewire\Questionnaires;
 use App\Models\GeneratedForm;
 use App\Models\QuestionnaireProject;
 use App\Services\Google\GoogleFormsService;
+use App\Services\Google\GoogleIntegrationException;
 use App\Services\Google\GoogleOAuthService;
 use App\Services\QuestionnaireProjectSyncService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -98,18 +99,28 @@ class EditQuestionnaireProject extends Component
             $form->update([...$result, 'status' => 'completed']);
             $this->project->update(['status' => 'generated']);
             session()->flash('success', 'Google Form generated successfully. Its links are ready below.');
-        } catch (Throwable $exception) {
-            report($exception);
+        } catch (GoogleIntegrationException $exception) {
             $form->update(['status' => 'failed', 'error_message' => $exception->getMessage()]);
             session()->flash('error', 'Form generation failed: '.$exception->getMessage());
+        } catch (Throwable $exception) {
+            report($exception);
+            $message = 'Form generation could not be completed. Check your Google configuration and try again.';
+            $form->update(['status' => 'failed', 'error_message' => $message]);
+            session()->flash('error', $message);
         }
     }
 
     public function render()
     {
+        $oauth = app(GoogleOAuthService::class);
+        $googleConnection = Auth::user()->googleConnection;
+
         return view('livewire.questionnaires.edit-questionnaire-project', [
-            'hasGoogleConnection' => Auth::user()->googleConnection()->exists(),
-            'googleConfigured' => app(GoogleOAuthService::class)->isConfigured(),
+            'googleConnection' => $googleConnection,
+            'googleMockMode' => $oauth->isMockMode(),
+            'googleConfigured' => $oauth->isConfigured(),
+            'googleConfigurationMessage' => $oauth->configurationMessage(),
+            'canGenerateForm' => $oauth->isMockMode() || ($oauth->isConfigured() && $googleConnection !== null),
             'latestForm' => $this->project->generatedForms()->latest()->first(),
         ]);
     }

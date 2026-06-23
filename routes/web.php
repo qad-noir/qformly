@@ -5,6 +5,7 @@ use App\Livewire\Dashboard\QuestionnaireDashboard;
 use App\Livewire\Questionnaires\CreateQuestionnaireProject;
 use App\Livewire\Questionnaires\EditQuestionnaireProject;
 use App\Livewire\Questionnaires\GeneratedForms;
+use App\Http\Controllers\GoogleConnectionController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -21,4 +22,7 @@ Route::middleware([
     Route::get('/questionnaires/{project}/edit', EditQuestionnaireProject::class)->name('questionnaires.edit');
     Route::get('/questionnaires/{project}/forms', GeneratedForms::class)->name('questionnaires.forms');
     Route::get('/generated-forms', GeneratedForms::class)->name('generated-forms.index');
+    Route::get('/google/connect', [GoogleConnectionController::class, 'redirectToGoogle'])->name('google.connect');
+    Route::get('/google/callback', [GoogleConnectionController::class, 'handleGoogleCallback'])->name('google.callback');
+    Route::post('/google/disconnect', [GoogleConnectionController::class, 'disconnect'])->name('google.disconnect');
 });

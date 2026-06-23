@@ -7,6 +7,10 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
         'forms_mock' => env('GOOGLE_FORMS_MOCK', true),
+        'scopes' => array_values(array_filter(array_map(
+            'trim',
+            preg_split('/[\s,]+/', env('GOOGLE_SCOPES', 'openid,email,profile,https://www.googleapis.com/auth/forms.body,https://www.googleapis.com/auth/drive.file')) ?: []
+        ))),
     ],
 
     /*

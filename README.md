@@ -7,6 +7,21 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Qformly Google Forms setup
+
+Qformly runs safely in mock mode by default. To create real Google Forms, configure a Google Cloud OAuth **web application** and set:
+
+```dotenv
+GOOGLE_CLIENT_ID="your OAuth web client ID"
+GOOGLE_CLIENT_SECRET="your OAuth web client secret"
+GOOGLE_REDIRECT_URI="http://127.0.0.1:8000/google/callback"
+GOOGLE_FORMS_MOCK=false
+```
+
+The Google Cloud project must enable the **Google Forms API** and **Google Drive API**, configure its OAuth consent screen, and register the redirect URI exactly as shown in the environment. Qformly requests `openid`, `email`, `profile`, `forms.body`, and `drive.file`; scopes may be provided as comma- or space-separated values in `GOOGLE_SCOPES`.
+
+When `GOOGLE_FORMS_MOCK=true`, no Google account is contacted and Qformly continues to return safe mock links.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

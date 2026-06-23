@@ -112,25 +112,51 @@
             </form>
 
             <section class="rounded-xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-900 dark:bg-emerald-950/40">
+                <div class="border-b border-emerald-200 pb-5 dark:border-emerald-900">
+                    <h3 class="font-semibold text-emerald-950 dark:text-emerald-100">Google account</h3>
+                    @if ($googleMockMode)
+                        <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Mock mode is active. Qformly will generate safe placeholder links and will not connect to Google.</p>
+                    @elseif (! $googleConfigured)
+                        <p class="mt-1 text-sm text-amber-800 dark:text-amber-200">{{ $googleConfigurationMessage }}</p>
+                    @elseif ($googleConnection)
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <p class="text-sm text-emerald-800 dark:text-emerald-200">Connected as <span class="font-semibold">{{ $googleConnection->google_email ?: 'Google account' }}</span></p>
+                            <form method="POST" action="{{ route('google.disconnect') }}">
+                                @csrf
+                                <button type="submit" class="text-sm font-semibold text-red-700 hover:text-red-800 dark:text-red-300">Disconnect</button>
+                            </form>
+                        </div>
+                    @else
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <p class="text-sm text-emerald-800 dark:text-emerald-200">Connect Google to create a real Google Form from this questionnaire.</p>
+                            <a href="{{ route('google.connect', ['project' => $project->id]) }}" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100">Connect Google Account</a>
+                        </div>
+                    @endif
+                </div>
+
                 <div class="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
                     <div>
                         <h3 class="font-semibold text-emerald-950 dark:text-emerald-100">Generate a Google Form</h3>
-                        @if (config('services.google.forms_mock', true))
-                            <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Mock mode is active, so Qformly will generate safe local placeholder links. Add Google credentials later to connect a real account.</p>
+                        @if ($googleMockMode)
+                            <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Mock mode is active, so Qformly will generate safe local placeholder links.</p>
                         @elseif (! $googleConfigured)
-                            <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Google credentials are not configured yet. Add them to your environment or turn on mock mode.</p>
-                        @elseif (! $hasGoogleConnection)
-                            <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Google OAuth is configured; account connection UI is the next integration step. Mock mode remains available for local testing.</p>
+                            <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Add the missing Google credentials before real generation can start.</p>
+                        @elseif (! $googleConnection)
+                            <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Connect your Google account before generating a real form.</p>
                         @else
-                            <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">A Google account is connected. Real API generation can be enabled in the service layer.</p>
+                            <p class="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Your connected account will own the newly created Google Form.</p>
                         @endif
                     </div>
-                    <button wire:click="generateForm" type="button" class="inline-flex shrink-0 items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2" wire:loading.attr="disabled">Generate Google Form</button>
+                    <button wire:click="generateForm" type="button" @disabled(! $canGenerateForm) class="inline-flex shrink-0 items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60" wire:loading.attr="disabled">Generate Google Form</button>
                 </div>
 
                 @if ($latestForm && $latestForm->status === 'completed')
                     <div class="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-                        <a href="{{ $latestForm->respondent_url }}" target="_blank" rel="noopener noreferrer" class="rounded-md bg-white px-4 py-3 font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-gray-800">Open respondent link ↗</a>
+                        @if ($latestForm->respondent_url)
+                            <a href="{{ $latestForm->respondent_url }}" target="_blank" rel="noopener noreferrer" class="rounded-md bg-white px-4 py-3 font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-gray-800">Open respondent link ↗</a>
+                        @else
+                            <span class="rounded-md bg-white px-4 py-3 font-medium text-gray-600 shadow-sm dark:bg-gray-800 dark:text-gray-300">Respondent link unavailable</span>
+                        @endif
                         <a href="{{ $latestForm->edit_url }}" target="_blank" rel="noopener noreferrer" class="rounded-md bg-white px-4 py-3 font-semibold text-emerald-700 shadow-sm hover:bg-emerald-100 dark:bg-gray-800">Open edit link ↗</a>
                     </div>
                 @endif
