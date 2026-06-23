@@ -1,73 +1,176 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Qformly
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Qformly turns questionnaire documents into editable, shareable Google Forms. Upload a `.txt` or `.docx` questionnaire, review the extracted sections and questions, correct anything the parser missed, then generate a Google Form or use the built-in mock generator locally.
 
-## Qformly Google Forms setup
+The project was inspired by the repetitive work of rebuilding academic surveys, research instruments, and feedback questionnaires in Google Forms by hand. Qformly keeps people in control of the final form while taking care of the slow first draft.
 
-Qformly runs safely in mock mode by default. To create real Google Forms, configure a Google Cloud OAuth **web application** and set:
+## What it does
+
+- Authenticated questionnaire projects with private document uploads
+- TXT and DOCX text extraction
+- Predictable rule-based parsing of sections, numbered questions, lettered choices, checkboxes, Likert prompts, and open-text questions
+- An editable Livewire questionnaire editor for sections, questions, types, required flags, and choices
+- Mock Google Form generation for local development
+- Optional real Google OAuth and Google Forms API generation
+- Generated-form history with respondent and edit links
+- Per-user project, connection, and generated-form authorization
+
+Qformly currently uses deterministic parsing rules, not AI or an LLM.
+
+## Technology
+
+- PHP 8.3+
+- Laravel 13
+- Laravel Jetstream and Fortify authentication
+- Livewire 3 class components (no Volt)
+- Blade and Tailwind CSS
+- MySQL-compatible Laravel migrations and Eloquent
+- Laravel filesystem storage and queues
+- Google API PHP Client for OAuth and Google Forms API access
+- PHPUnit feature and unit tests
+
+## Requirements
+
+- PHP 8.3 or later, with the `zip` extension enabled for DOCX extraction
+- Composer
+- Node.js and npm
+- MySQL, MariaDB, or another Laravel-supported database
+
+## Installation
+
+```bash
+git clone <your-repository-url> qformly
+cd qformly
+composer install
+copy .env.example .env
+php artisan key:generate
+npm install
+```
+
+On macOS or Linux, use this instead of `copy`:
+
+```bash
+cp .env.example .env
+```
+
+Configure your database in `.env`, then run:
+
+```bash
+php artisan migrate
+php artisan db:seed
+npm run build
+php artisan serve
+```
+
+Open the URL shown by Laravel, register an account, and create a questionnaire project. The optional demo seeder creates a local sample user at `test@example.com` with password `password`.
+
+## Local development
+
+Run the Laravel server, queue worker, logs, and Vite development server together:
+
+```bash
+composer run dev
+```
+
+Or run the parts independently:
+
+```bash
+php artisan serve
+php artisan queue:listen
+npm run dev
+```
+
+## Questionnaire workflow
+
+1. Sign in and choose **New Questionnaire**.
+2. Enter a project title and upload a `.txt` or `.docx` file (up to 5 MB).
+3. Qformly stores the upload privately, extracts text, and builds an editable draft.
+4. Review sections, question types, options, and required flags in the editor.
+5. Use **Reparse original** if an existing project was created before a parser improvement. This replaces the current parsed sections, questions, and options with a fresh parse of the saved source text.
+6. Generate a mock or real Google Form.
+
+PDF uploads are intentionally not supported in the current MVP; the app shows a friendly message instead.
+
+## Google Forms modes
+
+### Mock mode (default)
+
+Mock mode needs no Google credentials and is the safest way to develop locally:
+
+```dotenv
+GOOGLE_FORMS_MOCK=true
+```
+
+Generated records receive safe placeholder respondent and edit links. No Google account is contacted.
+
+### Real Google OAuth and Forms API mode
+
+To generate actual Google Forms, create an OAuth **Web application** in Google Cloud and enable:
+
+- Google Forms API
+- Google Drive API
+
+Configure the OAuth consent screen, create credentials, and add the redirect URI exactly as it appears in `.env`:
 
 ```dotenv
 GOOGLE_CLIENT_ID="your OAuth web client ID"
 GOOGLE_CLIENT_SECRET="your OAuth web client secret"
 GOOGLE_REDIRECT_URI="http://127.0.0.1:8000/google/callback"
 GOOGLE_FORMS_MOCK=false
+GOOGLE_SCOPES="openid,email,profile,https://www.googleapis.com/auth/forms.body,https://www.googleapis.com/auth/drive.file"
 ```
 
-The Google Cloud project must enable the **Google Forms API** and **Google Drive API**, configure its OAuth consent screen, and register the redirect URI exactly as shown in the environment. Qformly requests `openid`, `email`, `profile`, `forms.body`, and `drive.file`; scopes may be provided as comma- or space-separated values in `GOOGLE_SCOPES`.
-
-When `GOOGLE_FORMS_MOCK=true`, no Google account is contacted and Qformly continues to return safe mock links.
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+After changing environment values, run:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan optimize:clear
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Then open a questionnaire editor, select **Connect Google Account**, complete consent, and generate the form. Qformly stores OAuth access and refresh tokens using Laravel encrypted casts and never displays them in the UI.
 
-## Contributing
+> **Testing note:** If Google connection fails during testing, sign out of Google first or use an Incognito window, then connect again with an approved test-user account.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+For a Google OAuth application in testing mode, the Google account must be listed as an approved test user in the Google Cloud consent-screen configuration.
 
-## Code of Conduct
+## Google Forms mapping
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+| Qformly type | Google Forms type |
+| --- | --- |
+| `short_text` | Short text |
+| `paragraph` | Paragraph |
+| `multiple_choice` | Multiple choice / radio |
+| `checkboxes` | Checkboxes |
+| `dropdown` | Dropdown |
+| `likert` | Multiple choice using the project’s Likert options |
 
-## Security Vulnerabilities
+Qformly preserves section order, question numbering, option order, help text, and required settings. New Google Forms are published using the Forms API where the connected account and Workspace policy permit it.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Testing and verification
+
+```bash
+php artisan optimize:clear
+php artisan migrate
+php artisan route:list
+php artisan test
+npm run build
+```
+
+The test suite covers parsing, inline DOCX checkbox choices, uploads, ownership checks, mock form generation, Google OAuth route protection, OAuth state validation, and friendly real-mode failures when credentials or a Google connection are missing.
+
+## Security notes
+
+- Questionnaire uploads are stored on Laravel’s private local disk by default.
+- Questionnaire projects, Google connections, and generated forms are scoped to their owner.
+- OAuth state is bound to both the session and initiating user.
+- Google access and refresh tokens are encrypted at rest and hidden from model serialization.
+- Do not commit `.env` files, OAuth client secrets, access tokens, or refresh tokens.
+
+## Current MVP limits
+
+- PDF extraction is not yet implemented.
+- Parsing is intentionally rule-based and should always be reviewed before generation.
+- Google API behavior can be constrained by the connected account’s Google Workspace policies.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Qformly is built on Laravel, which is licensed under the MIT license.
