@@ -39,7 +39,7 @@ Qformly currently uses deterministic parsing rules, not AI or an LLM.
 ## Installation
 
 ```bash
-git clone <your-repository-url> qformly
+git clone git clone https://github.com/qad-noir/qformly.git qformly
 cd qformly
 composer install
 copy .env.example .env
@@ -174,3 +174,4 @@ The test suite covers parsing, inline DOCX checkbox choices, uploads, ownership 
 ## License
 
 Qformly is built on Laravel, which is licensed under the MIT license.
+
