@@ -6,6 +6,7 @@ use App\Livewire\Questionnaires\CreateQuestionnaireProject;
 use App\Livewire\Questionnaires\EditQuestionnaireProject;
 use App\Livewire\Questionnaires\GeneratedForms;
 use App\Http\Controllers\GoogleConnectionController;
+use App\Services\Google\GoogleOAuthService;
 
 Route::get('/', function () {
     return view('welcome');
@@ -26,3 +27,17 @@ Route::middleware([
     Route::get('/google/callback', [GoogleConnectionController::class, 'handleGoogleCallback'])->name('google.callback');
     Route::post('/google/disconnect', [GoogleConnectionController::class, 'disconnect'])->name('google.disconnect');
 });
+
+Route::get('/debug/google-url', function (GoogleOAuthService $service) {
+    return response()->json([
+        'redirect_uri' => config('services.google.redirect_uri'),
+        'client_id_exists' => filled(config('services.google.client_id')),
+        'client_secret_exists' => filled(config('services.google.client_secret')),
+        'scopes' => config('services.google.scopes'),
+        'forms_mock' => config('services.google.forms_mock'),
+        'auth_url' => $service->authorizationUrl(
+            auth()->user(),
+            route('dashboard')
+        ),
+    ]);
+})->middleware(['auth']);
