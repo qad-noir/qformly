@@ -7,6 +7,9 @@
             </div>
             <div class="flex flex-wrap gap-3">
                 <a href="{{ route('questionnaires.forms', $project) }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">Generated forms</a>
+                @if ($project->extracted_text)
+                    <button wire:click="reparseOriginalUpload" wire:confirm="Reparse the original upload? This replaces the current sections, questions, and options with a fresh parse." type="button" class="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm hover:bg-amber-100" wire:loading.attr="disabled">Reparse original</button>
+                @endif
                 <button wire:click="save" type="button" class="inline-flex items-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2" wire:loading.attr="disabled">Save changes</button>
             </div>
         </div>

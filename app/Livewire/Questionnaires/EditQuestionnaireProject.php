@@ -7,6 +7,7 @@ use App\Models\QuestionnaireProject;
 use App\Services\Google\GoogleFormsService;
 use App\Services\Google\GoogleIntegrationException;
 use App\Services\Google\GoogleOAuthService;
+use App\Services\QuestionnaireParserService;
 use App\Services\QuestionnaireProjectSyncService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
@@ -82,6 +83,41 @@ class EditQuestionnaireProject extends Component
     {
         $this->persistQuestionnaire();
         session()->flash('success', 'Your questionnaire changes have been saved.');
+    }
+
+    public function reparseOriginalUpload(): void
+    {
+        $this->authorize('update', $this->project);
+
+        if (blank($this->project->extracted_text)) {
+            session()->flash('error', 'The original extracted text is unavailable, so this questionnaire cannot be reparsed.');
+
+            return;
+        }
+
+        try {
+            $parsed = app(QuestionnaireParserService::class)->parse($this->project->extracted_text);
+            $parsed['title'] = trim($this->title) ?: $this->project->title;
+            $parsed['description'] = $this->blankToNull($this->description);
+
+            $this->project->update([
+                'title' => $parsed['title'],
+                'description' => $parsed['description'],
+                'parsed_json' => $parsed,
+                'status' => 'parsed',
+                'parse_error' => null,
+            ]);
+            app(QuestionnaireProjectSyncService::class)->sync($this->project, $parsed);
+            $this->project->refresh();
+            $this->title = $this->project->title;
+            $this->description = $this->project->description;
+            $this->sections = $this->sectionsFromProject();
+
+            session()->flash('success', 'The original upload was reparsed. Review the refreshed questions and options before generating your form.');
+        } catch (Throwable $exception) {
+            report($exception);
+            session()->flash('error', 'Qformly could not reparse the original upload. Please upload the questionnaire again.');
+        }
     }
 
     public function generateForm(): void

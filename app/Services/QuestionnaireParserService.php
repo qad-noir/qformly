@@ -43,12 +43,13 @@ class QuestionnaireParserService
             if ($this->questionMatch($line, $questionMatch)) {
                 $this->finishQuestion($currentSection, $currentQuestion);
                 $currentSection ??= ['title' => 'Questions', 'help_text' => null, 'questions' => []];
+                [$questionTitle, $inlineOptions] = $this->extractInlineOptions(trim($questionMatch[2]));
                 $currentQuestion = [
                     'number' => $questionMatch[1],
-                    'title' => trim($questionMatch[2]),
+                    'title' => $questionTitle,
                     'type' => 'short_text',
                     'required' => true,
-                    'options' => [],
+                    'options' => $inlineOptions,
                 ];
                 continue;
             }
@@ -107,13 +108,18 @@ class QuestionnaireParserService
 
     private function optionMatch(string $line, ?array &$match): bool
     {
-        return preg_match('/^(?:[a-z]|[ivxlcdm]+)\s*[.)]\s+(.+)$/iu', $line, $match) === 1;
+        return preg_match('/^(?:[☐☑☒□]\s*)*(?:[a-z]|[ivxlcdm]+)\s*[.)]\s+(.+)$/iu', $line, $match) === 1;
     }
 
     private function finishQuestion(?array &$section, ?array &$question): void
     {
         if ($section === null || $question === null) {
             return;
+        }
+
+        [$question['title'], $inlineOptions] = $this->extractInlineOptions($question['title']);
+        if ($inlineOptions !== []) {
+            $question['options'] = array_values(array_merge($question['options'], $inlineOptions));
         }
 
         $context = implode(' ', [
@@ -129,6 +135,35 @@ class QuestionnaireParserService
         }
         $section['questions'][] = $question;
         $question = null;
+    }
+
+    /** @return array{0: string, 1: array<int, string>} */
+    private function extractInlineOptions(string $text): array
+    {
+        $matches = [];
+        preg_match_all('/(?:[☐☑☒□]\s*)+\s*([a-z])\s*[.)]\s*/iu', $text, $matches, PREG_OFFSET_CAPTURE);
+
+        if (($matches[0] ?? []) === []) {
+            return [trim($text), []];
+        }
+
+        $questionTitle = trim(substr($text, 0, $matches[0][0][1]));
+        $questionTitle = preg_replace('/[☐☑☒□\s]+$/u', '', $questionTitle) ?? $questionTitle;
+        $options = [];
+        $textLength = strlen($text);
+
+        foreach ($matches[0] as $index => $match) {
+            $start = $match[1] + strlen($match[0]);
+            $end = $matches[0][$index + 1][1] ?? $textLength;
+            $option = trim(substr($text, $start, $end - $start));
+            $option = preg_replace('/\s*[☐☑☒□]\s*$/u', '', $option) ?? $option;
+
+            if ($option !== '') {
+                $options[] = $option;
+            }
+        }
+
+        return [trim($questionTitle), $options];
     }
 
     private function detectType(string $title, array $options, string $context): string

@@ -85,6 +85,31 @@ TEXT);
         ]);
     }
 
+    public function test_an_owner_can_reparse_saved_text_with_inline_checkbox_options(): void
+    {
+        $user = User::factory()->create();
+        $project = QuestionnaireProject::factory()->create([
+            'user_id' => $user->id,
+            'extracted_text' => <<<'TEXT'
+Breakfast Habits Survey
+SECTION B: BREAKFAST
+13. What are your main reasons for skipping breakfast? (Tick all that apply) ☐ a. Lack of time ☐ b. No appetite
+TEXT,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(\App\Livewire\Questionnaires\EditQuestionnaireProject::class, ['project' => $project])
+            ->call('reparseOriginalUpload')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('questionnaire_questions', [
+            'questionnaire_section_id' => $project->fresh()->sections()->first()->id,
+            'question_number' => '13',
+            'type' => 'checkboxes',
+        ]);
+        $this->assertDatabaseCount('questionnaire_options', 2);
+    }
+
     public function test_dashboard_and_generated_forms_pages_render_for_an_owner(): void
     {
         $user = User::factory()->create();
