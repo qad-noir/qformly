@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\QuestionnaireProject;
+use App\Models\GeneratedForm;
 use App\Models\User;
 use App\Services\Google\GoogleFormsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -82,5 +83,28 @@ TEXT);
             'questionnaire_project_id' => $project->id,
             'status' => 'completed',
         ]);
+    }
+
+    public function test_dashboard_and_generated_forms_pages_render_for_an_owner(): void
+    {
+        $user = User::factory()->create();
+        $project = QuestionnaireProject::factory()->create(['user_id' => $user->id, 'title' => 'Owner Survey']);
+        GeneratedForm::create([
+            'user_id' => $user->id,
+            'questionnaire_project_id' => $project->id,
+            'status' => 'completed',
+            'respondent_url' => 'https://example.test/respond',
+            'edit_url' => 'https://example.test/edit',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(\App\Livewire\Dashboard\QuestionnaireDashboard::class)
+            ->assertSee('Questionnaire projects')
+            ->assertSee('Owner Survey');
+
+        Livewire::actingAs($user)
+            ->test(\App\Livewire\Questionnaires\GeneratedForms::class)
+            ->assertSee('Generated forms')
+            ->assertSee('Owner Survey');
     }
 }
