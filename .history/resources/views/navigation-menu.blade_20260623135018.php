@@ -13,7 +13,7 @@
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard') || request()->routeIs('questionnaires.index')">
-                        {{ __('Dashboard') }}
+                        {{ __('Qformly Dashboard') }}
                     </x-nav-link>
                     <x-nav-link href="{{ route('questionnaires.create') }}" :active="request()->routeIs('questionnaires.create')">
                         {{ __('New Questionnaire') }}
