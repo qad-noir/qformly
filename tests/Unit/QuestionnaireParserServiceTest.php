@@ -105,14 +105,17 @@ TEXT);
         $attitudes = $parsed['sections'][2]['questions'];
 
         $this->assertSame('Age', $demographics[0]['title']);
+        $this->assertSame('1', $demographics[0]['number']);
         $this->assertSame(['18–20 years', '21–23 years'], $demographics[0]['options']);
         $this->assertSame(['Male', 'Female'], $demographics[1]['options']);
         $this->assertSame('checkboxes', $knowledge[0]['type']);
         $this->assertSame(['Male condom', 'Female condom', 'Oral contraceptive pills'], $knowledge[0]['options']);
         $this->assertSame('Male condom', $knowledge[1]['title']);
+        $this->assertSame('4', $knowledge[1]['number']);
         $this->assertSame(['Yes', 'No'], $knowledge[1]['options']);
         $this->assertSame('likert', $attitudes[0]['type']);
         $this->assertSame(['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'], $attitudes[0]['options']);
         $this->assertCount(2, $attitudes);
+        $this->assertSame('6', $attitudes[0]['number']);
     }
 }

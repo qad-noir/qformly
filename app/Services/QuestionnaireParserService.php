@@ -146,6 +146,8 @@ class QuestionnaireParserService
             $sections[] = $this->parseUnnumberedSection('Questions', array_slice($lines, 1));
         }
 
+        $this->assignGeneratedQuestionNumbers($sections);
+
         return [
             'title' => $title,
             'description' => $descriptionLines === [] ? null : implode("\n", $descriptionLines),
@@ -325,6 +327,24 @@ class QuestionnaireParserService
     private function appendQuestionHelp(array &$question, string $line): void
     {
         $question['help_text'] = trim(($question['help_text'] ? $question['help_text'].' ' : '').$line);
+    }
+
+    /** @param array<int, array<string, mixed>> $sections */
+    private function assignGeneratedQuestionNumbers(array &$sections): void
+    {
+        $nextNumber = 1;
+
+        foreach ($sections as &$section) {
+            foreach ($section['questions'] as &$question) {
+                if (blank($question['number'] ?? null)) {
+                    $question['number'] = (string) $nextNumber;
+                }
+
+                $nextNumber++;
+            }
+            unset($question);
+        }
+        unset($section);
     }
 
     private function isSectionHeading(string $line): bool
