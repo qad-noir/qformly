@@ -8,7 +8,7 @@ The project was inspired by the repetitive work of rebuilding academic surveys, 
 
 - Authenticated questionnaire projects with private document uploads
 - TXT and DOCX text extraction
-- Predictable rule-based parsing of sections, numbered questions, lettered choices, checkboxes, Likert prompts, and open-text questions
+- Predictable rule-based parsing of sections, numbered questions, lettered choices, checkbox prompts, Likert prompts, grid-style sub-questions, and open-text questions
 - An editable Livewire questionnaire editor for sections, questions, types, required flags, and choices
 - Mock Google Form generation for local development
 - Optional real Google OAuth and Google Forms API generation
@@ -39,7 +39,7 @@ Qformly currently uses deterministic parsing rules, not AI or an LLM.
 ## Installation
 
 ```bash
-git clone git clone https://github.com/qad-noir/qformly.git qformly
+git clone https://github.com/qad-noir/qformly.git qformly
 cd qformly
 composer install
 copy .env.example .env
@@ -141,9 +141,10 @@ For a Google OAuth application in testing mode, the Google account must be liste
 | `multiple_choice` | Multiple choice / radio |
 | `checkboxes` | Checkboxes |
 | `dropdown` | Dropdown |
+| `multiple_choice_grid` | Multiple choice grid with shared row choices |
 | `likert` | Multiple choice using the project’s Likert options |
 
-Qformly preserves section order, question numbering, option order, help text, and required settings. New Google Forms are published using the Forms API where the connected account and Workspace policy permit it.
+Qformly preserves section order, question numbering, option order, help text, and required settings. Grid-style questions such as “For each method below…” are parsed as one `multiple_choice_grid` question, with lettered sub-items stored as rows and shared answers such as `Yes / No` used as the Google Forms grid columns. New Google Forms are published using the Forms API where the connected account and Workspace policy permit it.
 
 ## Testing and verification
 
@@ -174,4 +175,3 @@ The test suite covers parsing, inline DOCX checkbox choices, uploads, ownership 
 ## License
 
 Qformly is built on Laravel, which is licensed under the MIT license.
-
