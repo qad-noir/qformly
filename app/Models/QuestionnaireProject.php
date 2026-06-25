@@ -18,7 +18,10 @@ class QuestionnaireProject extends Model
 
     protected function casts(): array
     {
-        return ['parsed_json' => 'array'];
+        return [
+            'user_id' => 'integer',
+            'parsed_json' => 'array'
+            ];
     }
 
     public function user(): BelongsTo
