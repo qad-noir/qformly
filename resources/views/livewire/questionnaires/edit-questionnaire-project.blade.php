@@ -78,17 +78,24 @@
                                         <input wire:model="sections.{{ $sectionIndex }}.questions.{{ $questionIndex }}.help_text" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200" />
                                     </div>
 
-                                    @if (in_array($question['type'], ['multiple_choice', 'checkboxes', 'dropdown', 'likert'], true))
+                                    @if (in_array($question['type'], ['multiple_choice', 'checkboxes', 'dropdown', 'multiple_choice_grid', 'likert'], true))
                                         <div class="mt-5 border-t border-gray-100 pt-4 dark:border-gray-700">
                                             <div class="flex items-center justify-between">
-                                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Options</p>
-                                                <button wire:click="addOption({{ $sectionIndex }}, {{ $questionIndex }})" type="button" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">Add option</button>
+                                                <div>
+                                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                        {{ $question['type'] === 'multiple_choice_grid' ? 'Rows / sub-questions' : 'Options' }}
+                                                    </p>
+                                                    @if ($question['type'] === 'multiple_choice_grid')
+                                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Shared answer choices are read from the help text, e.g. “Response choices: Yes; No”.</p>
+                                                    @endif
+                                                </div>
+                                                <button wire:click="addOption({{ $sectionIndex }}, {{ $questionIndex }})" type="button" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800">{{ $question['type'] === 'multiple_choice_grid' ? 'Add row' : 'Add option' }}</button>
                                             </div>
                                             <x-input-error for="sections.{{ $sectionIndex }}.questions.{{ $questionIndex }}.options" class="mt-2" />
                                             <div class="mt-3 space-y-2">
                                                 @foreach ($question['options'] as $optionIndex => $option)
                                                     <div wire:key="option-{{ $sectionIndex }}-{{ $questionIndex }}-{{ $optionIndex }}" class="flex items-center gap-2">
-                                                        <input wire:model="sections.{{ $sectionIndex }}.questions.{{ $questionIndex }}.options.{{ $optionIndex }}.label" type="text" placeholder="Option label" class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200" />
+                                                        <input wire:model="sections.{{ $sectionIndex }}.questions.{{ $questionIndex }}.options.{{ $optionIndex }}.label" type="text" placeholder="{{ $question['type'] === 'multiple_choice_grid' ? 'Row label' : 'Option label' }}" class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200" />
                                                         <button wire:click="removeOption({{ $sectionIndex }}, {{ $questionIndex }}, {{ $optionIndex }})" type="button" class="rounded p-2 text-red-600 hover:bg-red-50" aria-label="Remove option">×</button>
                                                     </div>
                                                     <x-input-error for="sections.{{ $sectionIndex }}.questions.{{ $questionIndex }}.options.{{ $optionIndex }}.label" class="mt-1" />

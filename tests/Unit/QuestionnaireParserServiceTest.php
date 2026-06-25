@@ -110,12 +110,43 @@ TEXT);
         $this->assertSame(['Male', 'Female'], $demographics[1]['options']);
         $this->assertSame('checkboxes', $knowledge[0]['type']);
         $this->assertSame(['Male condom', 'Female condom', 'Oral contraceptive pills'], $knowledge[0]['options']);
-        $this->assertSame('Male condom', $knowledge[1]['title']);
+        $this->assertSame('For each method below, indicate whether you think it can effectively prevent pregnancy.', $knowledge[1]['title']);
+        $this->assertSame('multiple_choice_grid', $knowledge[1]['type']);
         $this->assertSame('4', $knowledge[1]['number']);
-        $this->assertSame(['Yes', 'No'], $knowledge[1]['options']);
+        $this->assertSame('Response choices: Yes; No', $knowledge[1]['help_text']);
+        $this->assertSame(['a. Male condom', 'b. Oral contraceptive pills'], $knowledge[1]['options']);
         $this->assertSame('likert', $attitudes[0]['type']);
         $this->assertSame(['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'], $attitudes[0]['options']);
         $this->assertCount(2, $attitudes);
-        $this->assertSame('6', $attitudes[0]['number']);
+        $this->assertSame('5', $attitudes[0]['number']);
+    }
+
+    #[Test]
+    public function it_groups_numbered_lettered_rows_with_shared_answers_as_a_grid_question(): void
+    {
+        $parsed = (new QuestionnaireParserService)->parse(<<<'TEXT'
+Matrix Survey
+
+SECTION A: KNOWLEDGE
+12. For each method below, indicate whether it can effectively prevent pregnancy.
+a. Male condom
+Yes
+No
+b. Oral contraceptive pills
+Yes
+No
+13. Which statement is correct?
+a. Statement one
+b. Statement two
+TEXT);
+
+        $questions = $parsed['sections'][0]['questions'];
+
+        $this->assertSame('12', $questions[0]['number']);
+        $this->assertSame('multiple_choice_grid', $questions[0]['type']);
+        $this->assertSame(['a. Male condom', 'b. Oral contraceptive pills'], $questions[0]['options']);
+        $this->assertSame('Response choices: Yes; No', $questions[0]['help_text']);
+        $this->assertSame('13', $questions[1]['number']);
+        $this->assertSame('multiple_choice', $questions[1]['type']);
     }
 }

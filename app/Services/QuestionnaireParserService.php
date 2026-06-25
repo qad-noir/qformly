@@ -48,13 +48,27 @@ class QuestionnaireParserService
                 $this->finishQuestion($currentSection, $currentQuestion);
                 $currentSection ??= ['title' => 'Questions', 'help_text' => null, 'questions' => []];
                 [$questionTitle, $inlineOptions] = $this->extractInlineOptions(trim($questionMatch[2]));
+                $isGridQuestion = $this->isMatrixInstruction($questionTitle);
                 $currentQuestion = [
                     'number' => $questionMatch[1],
                     'title' => $questionTitle,
-                    'type' => 'short_text',
+                    'type' => $isGridQuestion ? 'multiple_choice_grid' : 'short_text',
+                    'forced_type' => $isGridQuestion ? 'multiple_choice_grid' : null,
                     'required' => true,
+                    'help_text' => null,
                     'options' => $inlineOptions,
+                    'grid_columns' => [],
                 ];
+                continue;
+            }
+
+            if (($currentQuestion['type'] ?? null) === 'multiple_choice_grid') {
+                if ($this->matrixRowMatch($line, $matrixRow)) {
+                    $currentQuestion['options'][] = $this->matrixRowTitle($matrixRow);
+                    continue;
+                }
+
+                $this->appendGridColumn($currentQuestion, $line);
                 continue;
             }
 
@@ -160,7 +174,6 @@ class QuestionnaireParserService
     {
         $section = ['title' => $title, 'help_text' => null, 'questions' => []];
         $currentQuestion = null;
-        $matrixInstruction = null;
         $likertOptions = $this->likertOptions($lines);
 
         foreach ($lines as $index => $line) {
@@ -192,26 +205,32 @@ class QuestionnaireParserService
 
             if ($this->isMatrixInstruction($line)) {
                 $this->finishQuestion($section, $currentQuestion);
-                $matrixInstruction = $line;
+                $currentQuestion = [
+                    'number' => null,
+                    'title' => $line,
+                    'type' => 'multiple_choice_grid',
+                    'forced_type' => 'multiple_choice_grid',
+                    'required' => true,
+                    'help_text' => null,
+                    'options' => [],
+                    'grid_columns' => [],
+                ];
                 continue;
             }
 
-            if ($matrixInstruction !== null && $this->matrixRowMatch($line, $matrixRow)) {
-                $this->finishQuestion($section, $currentQuestion);
-                $currentQuestion = [
-                    'number' => null,
-                    'title' => $matrixRow[1],
-                    'type' => 'multiple_choice',
-                    'required' => true,
-                    'help_text' => $matrixInstruction,
-                    'options' => [],
-                ];
+            if (($currentQuestion['type'] ?? null) === 'multiple_choice_grid' && ! $this->isUnnumberedQuestionPrompt($line)) {
+                if ($this->matrixRowMatch($line, $matrixRow)) {
+                    $currentQuestion['options'][] = $this->matrixRowTitle($matrixRow);
+
+                    continue;
+                }
+
+                $this->appendGridColumn($currentQuestion, $line);
                 continue;
             }
 
             if ($this->isUnnumberedQuestionPrompt($line)) {
                 $this->finishQuestion($section, $currentQuestion);
-                $matrixInstruction = null;
                 $currentQuestion = [
                     'number' => null,
                     'title' => $line,
@@ -273,7 +292,31 @@ class QuestionnaireParserService
 
     private function matrixRowMatch(string $line, ?array &$match): bool
     {
-        return preg_match('/^[a-z]\s*[.)]\s+(.+)$/iu', $line, $match) === 1;
+        return preg_match('/^([a-z])\s*[.)]\s+(.+)$/iu', $line, $match) === 1;
+    }
+
+    /** @param array<int, string> $match */
+    private function matrixRowTitle(array $match): string
+    {
+        return mb_strtolower($match[1]).'. '.trim($match[2]);
+    }
+
+    /** @param array<string, mixed> $question */
+    private function appendGridColumn(array &$question, string $line): void
+    {
+        $line = trim($line);
+
+        if ($line === '') {
+            return;
+        }
+
+        $columns = $question['grid_columns'] ?? [];
+
+        if (! in_array($line, $columns, true)) {
+            $columns[] = $line;
+        }
+
+        $question['grid_columns'] = $columns;
     }
 
     private function isLikertStatement(string $line, ?string $nextLine): bool
@@ -383,6 +426,21 @@ class QuestionnaireParserService
 
         $question['type'] = $question['forced_type'] ?? $this->detectType($question['title'], $question['options'], $context);
         unset($question['forced_type']);
+
+        if ($question['type'] === 'multiple_choice_grid') {
+            $columns = array_values(array_filter(
+                $question['grid_columns'] ?? [],
+                static fn (string $column): bool => trim($column) !== ''
+            ));
+            unset($question['grid_columns']);
+
+            if ($columns !== []) {
+                $this->appendQuestionHelp($question, 'Response choices: '.implode('; ', $columns));
+            }
+        } else {
+            unset($question['grid_columns']);
+        }
+
         if ($question['type'] === 'likert' && $question['options'] === []) {
             $question['options'] = ['Strongly Agree', 'Agree', 'Neutral', 'Disagree', 'Strongly Disagree'];
         }

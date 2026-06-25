@@ -110,6 +110,37 @@ TEXT,
         $this->assertDatabaseCount('questionnaire_options', 2);
     }
 
+    public function test_an_owner_can_reparse_matrix_rows_as_one_grid_question(): void
+    {
+        $user = User::factory()->create();
+        $project = QuestionnaireProject::factory()->create([
+            'user_id' => $user->id,
+            'extracted_text' => <<<'TEXT'
+Family Planning Survey
+SECTION B: KNOWLEDGE
+For each method below, indicate whether you think it can effectively prevent pregnancy.
+a. Male condom
+Yes
+No
+b. Oral contraceptive pills
+Yes
+No
+TEXT,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(\App\Livewire\Questionnaires\EditQuestionnaireProject::class, ['project' => $project])
+            ->call('reparseOriginalUpload')
+            ->assertHasNoErrors();
+
+        $question = $project->fresh()->sections()->first()->questions()->first();
+
+        $this->assertSame('multiple_choice_grid', $question->type);
+        $this->assertSame('Response choices: Yes; No', $question->help_text);
+        $this->assertDatabaseCount('questionnaire_questions', 1);
+        $this->assertDatabaseCount('questionnaire_options', 2);
+    }
+
     public function test_dashboard_and_generated_forms_pages_render_for_an_owner(): void
     {
         $user = User::factory()->create();

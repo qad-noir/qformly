@@ -10,6 +10,7 @@ use Google\Service\Forms\BatchUpdateFormRequest;
 use Google\Service\Forms\ChoiceQuestion;
 use Google\Service\Forms\CreateItemRequest;
 use Google\Service\Forms\Form as GoogleForm;
+use Google\Service\Forms\Grid as FormsGrid;
 use Google\Service\Forms\Info;
 use Google\Service\Forms\Item;
 use Google\Service\Forms\Location;
@@ -18,8 +19,10 @@ use Google\Service\Forms\PageBreakItem;
 use Google\Service\Forms\PublishSettings;
 use Google\Service\Forms\PublishState;
 use Google\Service\Forms\Question;
+use Google\Service\Forms\QuestionGroupItem;
 use Google\Service\Forms\QuestionItem;
 use Google\Service\Forms\Request as FormsRequest;
+use Google\Service\Forms\RowQuestion;
 use Google\Service\Forms\SetPublishSettingsRequest;
 use Google\Service\Forms\TextItem;
 use Google\Service\Forms\TextQuestion;
@@ -140,6 +143,10 @@ class GoogleFormsService
 
     private function questionItem(QuestionnaireQuestion $question): Item
     {
+        if ($question->type === 'multiple_choice_grid') {
+            return $this->gridQuestionItem($question);
+        }
+
         $questionModel = new Question;
         $questionModel->setRequired($question->is_required);
 
@@ -163,12 +170,7 @@ class GoogleFormsService
                 'dropdown' => ChoiceQuestion::TYPE_DROP_DOWN,
                 default => ChoiceQuestion::TYPE_RADIO,
             });
-            $choiceQuestion->setOptions(array_map(function (string $label): Option {
-                $option = new Option;
-                $option->setValue($label);
-
-                return $option;
-            }, $options));
+            $choiceQuestion->setOptions($this->optionModels($options));
             $questionModel->setChoiceQuestion($choiceQuestion);
         }
 
@@ -183,6 +185,85 @@ class GoogleFormsService
         $item->setQuestionItem($questionItem);
 
         return $item;
+    }
+
+    private function gridQuestionItem(QuestionnaireQuestion $question): Item
+    {
+        $rows = $question->options->pluck('label')->filter()->values()->all();
+        if ($rows === []) {
+            throw new GoogleIntegrationException('"'.$this->questionTitle($question).'" needs at least one row before it can be generated.');
+        }
+
+        $columns = $this->gridColumns($question);
+        if ($columns === []) {
+            throw new GoogleIntegrationException('"'.$this->questionTitle($question).'" needs shared answer choices before it can be generated.');
+        }
+
+        $choiceQuestion = new ChoiceQuestion;
+        $choiceQuestion->setType(ChoiceQuestion::TYPE_RADIO);
+        $choiceQuestion->setOptions($this->optionModels($columns));
+
+        $grid = new FormsGrid;
+        $grid->setColumns($choiceQuestion);
+
+        $questionGroup = new QuestionGroupItem;
+        $questionGroup->setGrid($grid);
+        $questionGroup->setQuestions(array_map(function (string $row) use ($question): Question {
+            $rowQuestion = new RowQuestion;
+            $rowQuestion->setTitle($row);
+
+            $rowModel = new Question;
+            $rowModel->setRequired($question->is_required);
+            $rowModel->setRowQuestion($rowQuestion);
+
+            return $rowModel;
+        }, $rows));
+
+        $item = new Item;
+        $item->setTitle($this->questionTitle($question));
+
+        $description = $this->gridDescription($question);
+        if (filled($description)) {
+            $item->setDescription($description);
+        }
+
+        $item->setQuestionGroupItem($questionGroup);
+
+        return $item;
+    }
+
+    /** @param array<int, string> $labels @return array<int, Option> */
+    private function optionModels(array $labels): array
+    {
+        return array_map(function (string $label): Option {
+            $option = new Option;
+            $option->setValue($label);
+
+            return $option;
+        }, $labels);
+    }
+
+    /** @return array<int, string> */
+    private function gridColumns(QuestionnaireQuestion $question): array
+    {
+        $helpText = (string) $question->help_text;
+
+        if (preg_match('/response choices\s*:\s*([^\n]+)/iu', $helpText, $match) === 1) {
+            return array_values(array_filter(array_map(
+                static fn (string $choice): string => trim($choice),
+                preg_split('/\s*(?:;|,|\/|\|)\s*/u', $match[1]) ?: []
+            )));
+        }
+
+        return ['Yes', 'No'];
+    }
+
+    private function gridDescription(QuestionnaireQuestion $question): ?string
+    {
+        $description = preg_replace('/(?:^|\R)\s*response choices\s*:\s*[^\n]+/iu', '', (string) $question->help_text) ?? '';
+        $description = trim($description);
+
+        return $description === '' ? null : $description;
     }
 
     private function createItemRequest(Item $item, int $index): FormsRequest

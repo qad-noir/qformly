@@ -32,6 +32,7 @@ class EditQuestionnaireProject extends Component
         'multiple_choice' => 'Multiple choice',
         'checkboxes' => 'Checkboxes',
         'dropdown' => 'Dropdown',
+        'multiple_choice_grid' => 'Multiple choice grid',
         'likert' => 'Likert scale',
     ];
 
@@ -285,7 +286,7 @@ class EditQuestionnaireProject extends Component
 
     private function usesOptions(string $type): bool
     {
-        return in_array($type, ['multiple_choice', 'checkboxes', 'dropdown', 'likert'], true);
+        return in_array($type, ['multiple_choice', 'checkboxes', 'dropdown', 'multiple_choice_grid', 'likert'], true);
     }
 
     private function blankToNull(?string $value): ?string
